@@ -11,9 +11,8 @@ install:
   - cd C:\projects\fibratus
 
 build_script:
-  - ps: >
-      [Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";C:\wix", "Machine")
   - cmd: make
+  - cmd: set PATH=%PATH%;C:\wix
   - cmd: make pkg-slim
 
 deploy:
