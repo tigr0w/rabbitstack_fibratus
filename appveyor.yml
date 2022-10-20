@@ -14,10 +14,9 @@ environment:
   VERSION: 0.0.0
 
 build_script:
-  - set PATH=C:/msys64/usr/bin;%PATH%
-  - cmd: make rsrc
+  - set PATH=C:\wix;C:/msys64/usr/bin;%PATH%
+  - sh: ./make.bat rsrc
   - cmd: make
-  - cmd: set PATH=%PATH%;C:\wix
   - cmd: make pkg-slim
 
 deploy:
