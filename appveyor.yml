@@ -10,6 +10,10 @@ install:
   - unzip wix-binaries.zip
   - cd C:\projects\fibratus
 
+environment:
+  VERSION: 0.0.0
+  COMMIT: 12345
+
 build_script:
   - cmd: make
   - cmd: set PATH=%PATH%;C:\wix
