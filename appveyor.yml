@@ -13,6 +13,7 @@ install:
 environment:
   VERSION: 0.0.0
   SIGNPATH_SIGNING_POLICY_SLUG: test-signing
+  ARTIFACT_CONFIGURATION_SLUG: fibratus
 
 build_script:
   - set PATH=C:\wix;C:/msys64/usr/bin;%PATH%
