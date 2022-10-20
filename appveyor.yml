@@ -10,10 +10,11 @@ install:
   - unzip wix-binaries.zip
   - ps: >
       [Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";C:\wix", "Machine")
+  - cd C:\projects\fibratus
 
 build_script:
-  - cmd: make.bat
-  - cmd: make.bat pkg-slim
+  - cmd: make
+  - cmd: make pkg-slim
 
 deploy:
   - provider: Webhook
