@@ -8,7 +8,8 @@ install:
   - ps: Invoke-WebRequest https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip -OutFile C:\wix\wix-binaries.zip
   - cd C:\wix
   - unzip wix-binaries.zip
-  - ps: [Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";C:\wix", "Machine")
+  - ps: >
+      [Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";C:\wix", "Machine")
 
 build_script:
   - cmd: make.bat
