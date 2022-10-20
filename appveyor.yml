@@ -10,6 +10,9 @@ install:
   - unzip wix-binaries.zip
   - cd C:\projects\fibratus
 
+artifacts:
+  - path: build\msi\*.msi
+
 environment:
   VERSION: 0.0.0
   SIGNPATH_SIGNING_POLICY_SLUG: test-signing
