@@ -12,11 +12,11 @@ install:
 
 environment:
   VERSION: 0.0.0
-  COMMIT: 12345
 
 build_script:
   - cmd: make
   - cmd: set PATH=%PATH%;C:\wix
+  - cmd: set VERSION=0.0.0
   - cmd: make pkg-slim
 
 deploy:
