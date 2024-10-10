@@ -83,6 +83,14 @@ type PS struct {
 	Username string `json:"username"`
 	// Domain represents the domain under which the process is run. (e.g. NT AUTHORITY)
 	Domain string `json:"domain"`
+	// IsWOW64 indicates if this is 32-bit process created in 64-bit Windows system (Windows on Windows)
+	IsWOW64 bool `json:"is_wow_64"`
+	// IsPackaged denotes that the process is packaged with the MSIX technology and thus has
+	// associated package identity.
+	IsPackaged bool `json:"is_packaged"`
+	// IsProtected denotes a protected process. The system restricts access to protected
+	// processes and the threads of protected processes.
+	IsProtected bool `json:"is_protected"`
 }
 
 // UUID is meant to offer a more robust version of process ID that
@@ -130,6 +138,40 @@ func querySequenceNumber(pid uint32) uint64 {
 
 // String returns a string representation of the process' state.
 func (ps *PS) String() string {
+	parent := ps.Parent
+	if parent != nil {
+		return fmt.Sprintf(`
+		Pid:  %d
+		Ppid: %d
+		Name: %s
+		Parent name: %s
+		Cmdline: %s
+		Parent cmdline: %s
+		Exe:  %s
+		Cwd:  %s
+		SID:  %s
+		Username: %s
+		Domain: %s
+		Args: %s
+		Session ID: %d
+		Envs: %v
+		`,
+			ps.PID,
+			ps.Ppid,
+			ps.Name,
+			parent.Name,
+			ps.Cmdline,
+			parent.Cmdline,
+			ps.Exe,
+			ps.Cwd,
+			ps.SID,
+			ps.Username,
+			ps.Domain,
+			ps.Args,
+			ps.SessionID,
+			ps.Envs,
+		)
+	}
 	return fmt.Sprintf(`
 		Pid:  %d
 		Ppid: %d
@@ -142,7 +184,7 @@ func (ps *PS) String() string {
 		Domain: %s
 		Args: %s
 		Session ID: %d
-		Envs: %s
+		Envs: %v
 		`,
 		ps.PID,
 		ps.Ppid,
@@ -190,13 +232,13 @@ type Thread struct {
 	KstackBase va.Address
 	// KstackLimit is the limit of the thread's kernel space stack.
 	KstackLimit va.Address
-	// Entrypoint is the starting address of the function to be executed by the thread.
-	Entrypoint va.Address
+	// StartAddress is thread start address.
+	StartAddress va.Address
 }
 
 // String returns the thread as a human-readable string.
 func (t Thread) String() string {
-	return fmt.Sprintf("ID: %d IO prio: %d, Base prio: %d, Page prio: %d, Ustack base: %s, Ustack limit: %s, Kstack base: %s, Kstack limit: %s, Entrypoint: %s", t.Tid, t.IOPrio, t.BasePrio, t.PagePrio, t.UstackBase, t.UstackLimit, t.KstackBase, t.UstackLimit, t.Entrypoint)
+	return fmt.Sprintf("ID: %d IO prio: %d, Base prio: %d, Page prio: %d, Ustack base: %s, Ustack limit: %s, Kstack base: %s, Kstack limit: %s, Start address: %s", t.Tid, t.IOPrio, t.BasePrio, t.PagePrio, t.UstackBase, t.UstackLimit, t.KstackBase, t.UstackLimit, t.StartAddress)
 }
 
 // Module represents the data for all dynamic libraries/executables that reside in the process' address space.

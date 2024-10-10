@@ -19,12 +19,12 @@
 package filter
 
 import (
+	"github.com/rabbitstack/fibratus/internal/etw/processors"
 	"github.com/rabbitstack/fibratus/pkg/config"
 	"github.com/rabbitstack/fibratus/pkg/filter/fields"
 	"github.com/rabbitstack/fibratus/pkg/kevent"
 	"github.com/rabbitstack/fibratus/pkg/kevent/kparams"
 	"github.com/rabbitstack/fibratus/pkg/kevent/ktypes"
-	"github.com/rabbitstack/fibratus/pkg/kstream/processors"
 	"github.com/rabbitstack/fibratus/pkg/pe"
 	"github.com/rabbitstack/fibratus/pkg/ps"
 	pstypes "github.com/rabbitstack/fibratus/pkg/ps/types"
@@ -112,6 +112,7 @@ func TestProcFilter(t *testing.T) {
 		kparams.UserSID:         {Name: kparams.UserSID, Type: kparams.WbemSID, Value: []byte{224, 8, 226, 31, 15, 167, 255, 255, 0, 0, 0, 0, 15, 167, 255, 255, 1, 1, 0, 0, 0, 0, 0, 5, 18, 0, 0, 0}},
 		kparams.Username:        {Name: kparams.Username, Type: kparams.UnicodeString, Value: "loki"},
 		kparams.Domain:          {Name: kparams.Domain, Type: kparams.UnicodeString, Value: "TITAN"},
+		kparams.ProcessFlags:    {Name: kparams.ProcessFlags, Type: kparams.Flags, Value: uint32(0x000000E)},
 	}
 
 	kpars1 := kevent.Kparams{
@@ -132,6 +133,9 @@ func TestProcFilter(t *testing.T) {
 				Name: "System",
 			},
 		},
+		IsWOW64:     false,
+		IsProtected: true,
+		IsPackaged:  false,
 	}
 
 	kevt := &kevent.Kevent{
@@ -153,6 +157,9 @@ func TestProcFilter(t *testing.T) {
 				{Name: "C:\\Windows\\System32\\kernel32.dll", Size: 12354, Checksum: 23123343, BaseAddress: va.Address(4294066175), DefaultBaseAddress: va.Address(4293993725)},
 				{Name: "C:\\Windows\\System32\\user32.dll", Size: 212354, Checksum: 33123343, BaseAddress: va.Address(4277288959), DefaultBaseAddress: va.Address(4293993725)},
 			},
+			IsProtected: false,
+			IsPackaged:  true,
+			IsWOW64:     false,
 		},
 	}
 	kevt.Timestamp, _ = time.Parse(time.RFC3339, "2011-05-03T15:04:05.323Z")
@@ -204,6 +211,15 @@ func TestProcFilter(t *testing.T) {
 		{`ps.parent.username = 'SYSTEM'`, true},
 		{`ps.parent.domain = 'NT AUTHORITY'`, true},
 		{`ps.envs in ('ALLUSERSPROFILE')`, true},
+		{`ps.child.is_wow64`, true},
+		{`ps.child.is_packaged`, true},
+		{`ps.child.is_protected`, true},
+		{`ps.is_wow64`, false},
+		{`ps.is_packaged`, true},
+		{`ps.is_protected`, false},
+		{`ps.parent.is_wow64`, false},
+		{`ps.parent.is_packaged`, false},
+		{`ps.parent.is_protected`, true},
 		{`kevt.name='CreateProcess' and ps.name contains 'svchost'`, true},
 
 		{`ps.modules IN ('kernel32.dll')`, true},
@@ -269,16 +285,16 @@ func TestProcFilter(t *testing.T) {
 
 func TestThreadFilter(t *testing.T) {
 	kpars := kevent.Kparams{
-		kparams.ProcessID:   {Name: kparams.ProcessID, Type: kparams.PID, Value: uint32(os.Getpid())},
-		kparams.ThreadID:    {Name: kparams.ThreadID, Type: kparams.TID, Value: uint32(3453)},
-		kparams.BasePrio:    {Name: kparams.BasePrio, Type: kparams.Uint8, Value: uint8(13)},
-		kparams.StartAddr:   {Name: kparams.StartAddr, Type: kparams.Address, Value: uint64(140729524944768)},
-		kparams.IOPrio:      {Name: kparams.IOPrio, Type: kparams.Uint8, Value: uint8(2)},
-		kparams.KstackBase:  {Name: kparams.KstackBase, Type: kparams.Address, Value: uint64(18446677035730165760)},
-		kparams.KstackLimit: {Name: kparams.KstackLimit, Type: kparams.Address, Value: uint64(18446677035730137088)},
-		kparams.PagePrio:    {Name: kparams.PagePrio, Type: kparams.Uint8, Value: uint8(5)},
-		kparams.UstackBase:  {Name: kparams.UstackBase, Type: kparams.Address, Value: uint64(86376448)},
-		kparams.UstackLimit: {Name: kparams.UstackLimit, Type: kparams.Address, Value: uint64(86372352)},
+		kparams.ProcessID:    {Name: kparams.ProcessID, Type: kparams.PID, Value: uint32(os.Getpid())},
+		kparams.ThreadID:     {Name: kparams.ThreadID, Type: kparams.TID, Value: uint32(3453)},
+		kparams.BasePrio:     {Name: kparams.BasePrio, Type: kparams.Uint8, Value: uint8(13)},
+		kparams.StartAddress: {Name: kparams.StartAddress, Type: kparams.Address, Value: uint64(140729524944768)},
+		kparams.IOPrio:       {Name: kparams.IOPrio, Type: kparams.Uint8, Value: uint8(2)},
+		kparams.KstackBase:   {Name: kparams.KstackBase, Type: kparams.Address, Value: uint64(18446677035730165760)},
+		kparams.KstackLimit:  {Name: kparams.KstackLimit, Type: kparams.Address, Value: uint64(18446677035730137088)},
+		kparams.PagePrio:     {Name: kparams.PagePrio, Type: kparams.Uint8, Value: uint8(5)},
+		kparams.UstackBase:   {Name: kparams.UstackBase, Type: kparams.Address, Value: uint64(86376448)},
+		kparams.UstackLimit:  {Name: kparams.UstackLimit, Type: kparams.Address, Value: uint64(86372352)},
 	}
 	kevt := &kevent.Kevent{
 		Type:     ktypes.CreateThread,
@@ -326,6 +342,7 @@ func TestThreadFilter(t *testing.T) {
 		{`thread.ustack.limit = '525f000'`, true},
 		{`thread.kstack.base = 'ffffc307810d6000'`, true},
 		{`thread.kstack.limit = 'ffffc307810cf000'`, true},
+		{`thread.start_address = '7ffe2557ff80'`, true},
 		{`thread.callstack.summary = 'KERNELBASE.dll|KERNEL32.DLL|java.dll|unbacked'`, true},
 		{`thread.callstack.detail icontains 'C:\\WINDOWS\\System32\\KERNELBASE.dll!CreateProcessW+0x66'`, true},
 		{`thread.callstack.modules in ('C:\\WINDOWS\\System32\\KERNELBASE.dll', 'C:\\Program Files\\JetBrains\\GoLand 2021.2.3\\jbr\\bin\\java.dll')`, true},
@@ -671,6 +688,7 @@ func TestImageFilter(t *testing.T) {
 		{`image.base.address = '7ffb313833a3'`, true},
 		{`image.cert.issuer icontains 'Microsoft Windows'`, true},
 		{`image.cert.subject icontains 'Microsoft Corporation'`, true},
+		{`image.is_dotnet`, false},
 	}
 
 	for i, tt := range tests {
@@ -734,6 +752,41 @@ func TestImageFilter(t *testing.T) {
 	}
 
 	assert.NotNil(t, signature.GetSignatures().GetSignature(0x7ccb313833a3))
+
+	kevt2 := &kevent.Kevent{
+		Type:     ktypes.LoadImage,
+		Category: ktypes.Image,
+		Kparams: kevent.Kparams{
+			kparams.ImageFilename:       {Name: kparams.ImageFilename, Type: kparams.UnicodeString, Value: "_fixtures\\mscorlib.dll"},
+			kparams.ProcessID:           {Name: kparams.ProcessID, Type: kparams.PID, Value: uint32(1023)},
+			kparams.ImageCheckSum:       {Name: kparams.ImageCheckSum, Type: kparams.Uint32, Value: uint32(2323432)},
+			kparams.ImageBase:           {Name: kparams.ImageBase, Type: kparams.Address, Value: uint64(0xfff313833a3)},
+			kparams.ImageSignatureType:  {Name: kparams.ImageSignatureType, Type: kparams.Enum, Value: uint32(0), Enum: signature.Types},
+			kparams.ImageSignatureLevel: {Name: kparams.ImageSignatureLevel, Type: kparams.Enum, Value: uint32(0), Enum: signature.Levels},
+		},
+	}
+
+	var tests2 = []struct {
+		filter  string
+		matches bool
+	}{
+
+		{`image.pid = 1023`, true},
+		{`image.name endswith 'mscorlib.dll'`, true},
+		{`image.is_dotnet`, true},
+	}
+
+	for i, tt := range tests2 {
+		f := New(tt.filter, cfg)
+		err := f.Compile()
+		if err != nil {
+			t.Fatal(err)
+		}
+		matches := f.Run(kevt2)
+		if matches != tt.matches {
+			t.Errorf("%d. %q image filter mismatch: exp=%t got=%t", i, tt.filter, tt.matches, matches)
+		}
+	}
 }
 
 func TestPEFilter(t *testing.T) {

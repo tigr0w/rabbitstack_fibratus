@@ -21,15 +21,20 @@ package action
 import (
 	"fmt"
 	"github.com/rabbitstack/fibratus/pkg/alertsender"
-	"github.com/rabbitstack/fibratus/pkg/alertsender/renderer"
 	"github.com/rabbitstack/fibratus/pkg/config"
 	"github.com/rabbitstack/fibratus/pkg/util/markdown"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 // Emit sends the rule alert via all configured alert senders.
 func Emit(ctx *config.ActionContext, title string, text string, severity string, tags []string) error {
-	log.Infof("sending alert: [%s]. Text: %s", title, text)
+	var b strings.Builder
+	for _, evt := range ctx.Events {
+		b.WriteString(evt.String())
+		b.WriteByte('\n')
+	}
+	log.Infof("sending alert: [%s]. Text: %s Event(s): %s", title, text, b.String())
 
 	senders := alertsender.FindAll()
 	if len(senders) == 0 {
@@ -43,22 +48,22 @@ func Emit(ctx *config.ActionContext, title string, text string, severity string,
 			tags,
 			alertsender.ParseSeverityFromString(severity),
 		)
-		// strip markdown
+
+		alert.ID = ctx.Filter.ID
+		alert.Events = ctx.Events
+		alert.Labels = ctx.Filter.Labels
+		alert.Description = ctx.Filter.Description
+
+		// strip markdown if not supported by the sender
 		if !sender.SupportsMarkdown() {
 			alert.Text = markdown.Strip(alert.Text)
 		}
-		// produce HTML rule alert text for email sender
-		if sender.Type() == alertsender.Mail {
-			var err error
-			alert.Text, err = renderer.RenderHTMLRuleAlert(ctx, alert)
-			if err != nil {
-				return err
-			}
-		}
+
 		err := sender.Send(alert)
 		if err != nil {
 			return fmt.Errorf("unable to emit alert from rule via [%s] sender: %v", sender.Type(), err)
 		}
 	}
+
 	return nil
 }

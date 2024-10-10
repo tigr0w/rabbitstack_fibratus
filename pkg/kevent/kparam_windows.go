@@ -217,6 +217,7 @@ func (e *Kevent) produceParams(evt *etw.EventRecord) {
 			sessionID  uint32
 			exitStatus uint32
 			dtb        uint64
+			flags      uint32
 			sid        []byte
 			name       string
 			cmdline    string
@@ -236,6 +237,9 @@ func (e *Kevent) produceParams(evt *etw.EventRecord) {
 		if evt.Version() >= 3 {
 			dtb = evt.ReadUint64(24)
 		}
+		if evt.Version() >= 4 {
+			flags = evt.ReadUint32(32)
+		}
 		switch {
 		case evt.Version() >= 4:
 			offset = 36
@@ -254,6 +258,7 @@ func (e *Kevent) produceParams(evt *etw.EventRecord) {
 		e.AppendParam(kparams.SessionID, kparams.Uint32, sessionID)
 		e.AppendParam(kparams.ExitStatus, kparams.Status, exitStatus)
 		e.AppendParam(kparams.DTB, kparams.Address, dtb)
+		e.AppendParam(kparams.ProcessFlags, kparams.Flags, flags, WithFlags(PsCreationFlags))
 		e.AppendParam(kparams.UserSID, kparams.WbemSID, sid)
 		e.AppendParam(kparams.ProcessName, kparams.AnsiString, name)
 		e.AppendParam(kparams.Cmdline, kparams.UnicodeString, cmdline)
@@ -272,7 +277,7 @@ func (e *Kevent) produceParams(evt *etw.EventRecord) {
 			tid            uint32
 			kstack, klimit uint64
 			ustack, ulimit uint64
-			startAddr      uint64
+			startAddress   uint64
 			basePrio       uint8
 			pagePrio       uint8
 			ioPrio         uint8
@@ -289,7 +294,7 @@ func (e *Kevent) produceParams(evt *etw.EventRecord) {
 			klimit = evt.ReadUint64(16)
 			ustack = evt.ReadUint64(24)
 			ulimit = evt.ReadUint64(32)
-			startAddr = evt.ReadUint64(48)
+			startAddress = evt.ReadUint64(48)
 		}
 		if evt.Version() >= 3 {
 			basePrio = evt.ReadByte(69)
@@ -302,7 +307,7 @@ func (e *Kevent) produceParams(evt *etw.EventRecord) {
 		e.AppendParam(kparams.KstackLimit, kparams.Address, klimit)
 		e.AppendParam(kparams.UstackBase, kparams.Address, ustack)
 		e.AppendParam(kparams.UstackLimit, kparams.Address, ulimit)
-		e.AppendParam(kparams.StartAddr, kparams.Address, startAddr)
+		e.AppendParam(kparams.StartAddress, kparams.Address, startAddress)
 		e.AppendParam(kparams.BasePrio, kparams.Uint8, basePrio)
 		e.AppendParam(kparams.PagePrio, kparams.Uint8, pagePrio)
 		e.AppendParam(kparams.IOPrio, kparams.Uint8, ioPrio)

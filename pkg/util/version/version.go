@@ -52,10 +52,15 @@ var sem *semver.Version
 func Set(v string) { version = v }
 
 // Get returns the version string.
-func Get() string { return version }
+func Get() string {
+	if IsDev() {
+		return "dev"
+	}
+	return version
+}
 
 // IsDev determines if this is a dev version.
-func IsDev() bool { return version == "dev" || version == "" }
+func IsDev() bool { return version == "0.0.0" || version == "" }
 
 // Sem returns a semver spec.
 func Sem() *semver.Version {

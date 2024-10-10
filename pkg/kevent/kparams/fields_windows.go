@@ -52,6 +52,8 @@ const (
 	Cmdline = "cmdline"
 	// DTB field denotes the address of the process directory table.
 	DTB = "directory_table_base"
+	// ProcessFlags field denotes the process creation flags
+	ProcessFlags = "flags"
 	// ExitStatus is the field that represents the process exit status.
 	ExitStatus = "exit_status"
 	// StartTime field denotes the process start time.
@@ -74,8 +76,8 @@ const (
 	UstackBase = "ustack"
 	// UstackLimit field is the end address of the user space stack.
 	UstackLimit = "ustack_limit"
-	// StartAddr field is the address of the thread main function.
-	StartAddr = "entrypoint"
+	// StartAddress field is the thread start address.
+	StartAddress = "start_address"
 
 	// FileObject determines the field name for the file object pointer.
 	FileObject = "file_object"

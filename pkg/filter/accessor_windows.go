@@ -184,6 +184,39 @@ func (ps *psAccessor) Get(f fields.Field, kevt *kevent.Kevent) (kparams.Value, e
 			return nil, nil
 		}
 		return kevt.Kparams.GetString(kparams.Username)
+	case fields.PsChildIsWOW64Field:
+		if kevt.Category != ktypes.Process {
+			return nil, nil
+		}
+		return (kevt.Kparams.MustGetUint32(kparams.ProcessFlags) & kevent.PsWOW64) != 0, nil
+	case fields.PsChildIsPackagedField:
+		if kevt.Category != ktypes.Process {
+			return nil, nil
+		}
+		return (kevt.Kparams.MustGetUint32(kparams.ProcessFlags) & kevent.PsPackaged) != 0, nil
+	case fields.PsChildIsProtectedField:
+		if kevt.Category != ktypes.Process {
+			return nil, nil
+		}
+		return (kevt.Kparams.MustGetUint32(kparams.ProcessFlags) & kevent.PsProtected) != 0, nil
+	case fields.PsIsWOW64Field:
+		ps := kevt.PS
+		if ps == nil {
+			return nil, ErrPsNil
+		}
+		return ps.IsWOW64, nil
+	case fields.PsIsPackagedField:
+		ps := kevt.PS
+		if ps == nil {
+			return nil, ErrPsNil
+		}
+		return ps.IsPackaged, nil
+	case fields.PsIsProtectedField:
+		ps := kevt.PS
+		if ps == nil {
+			return nil, ErrPsNil
+		}
+		return ps.IsProtected, nil
 	case fields.PsDomain:
 		ps := kevt.PS
 		if ps == nil {
@@ -387,6 +420,24 @@ func (ps *psAccessor) Get(f fields.Field, kevt *kevent.Kevent) (kparams.Value, e
 			types[i] = handle.Type
 		}
 		return types, nil
+	case fields.PsParentIsWOW64Field:
+		ps := getParentPs(kevt)
+		if ps == nil {
+			return nil, ErrPsNil
+		}
+		return ps.IsWOW64, nil
+	case fields.PsParentIsPackagedField:
+		ps := getParentPs(kevt)
+		if ps == nil {
+			return nil, ErrPsNil
+		}
+		return ps.IsPackaged, nil
+	case fields.PsParentIsProtectedField:
+		ps := getParentPs(kevt)
+		if ps == nil {
+			return nil, ErrPsNil
+		}
+		return ps.IsProtected, nil
 	default:
 		switch {
 		case f.IsEnvsMap():
@@ -559,8 +610,8 @@ func (t *threadAccessor) Get(f fields.Field, kevt *kevent.Kevent) (kparams.Value
 		return kevt.GetParamAsString(kparams.UstackBase), nil
 	case fields.ThreadUstackLimit:
 		return kevt.GetParamAsString(kparams.UstackLimit), nil
-	case fields.ThreadEntrypoint:
-		return kevt.GetParamAsString(kparams.StartAddr), nil
+	case fields.ThreadEntrypoint, fields.ThreadStartAddress:
+		return kevt.GetParamAsString(kparams.StartAddress), nil
 	case fields.ThreadPID:
 		return kevt.Kparams.GetUint32(kparams.ProcessID)
 	case fields.ThreadAccessMask:
@@ -869,6 +920,12 @@ func (i *imageAccessor) Get(f fields.Field, kevt *kevent.Kevent) (kparams.Value,
 		return kevt.Kparams.GetBool(kparams.FileIsDriver)
 	case fields.ImageIsExecutable:
 		return kevt.Kparams.GetBool(kparams.FileIsExecutable)
+	case fields.ImageIsDotnet:
+		p, err := pe.ParseFile(kevt.GetParamAsString(kparams.ImageFilename), pe.WithCLR())
+		if err != nil {
+			return nil, err
+		}
+		return p.IsDotnet, nil
 	}
 	return nil, nil
 }
@@ -1047,10 +1104,10 @@ func (pa *peAccessor) Get(f fields.Field, kevt *kevent.Kevent) (kparams.Value, e
 	// original file name as part of the CreateProcess event,
 	// then the parser obtains the PE metadata for the executable
 	// path parameter
-	if (kevt.PS != nil && kevt.PS.Exe != "" && p == nil) || f == fields.PePsChildFileName {
+	if (kevt.PS != nil && kevt.PS.Exe != "" && p == nil) || f == fields.PePsChildFileName || f == fields.PsChildPeFilename {
 		var err error
 		var exe string
-		if f == fields.PePsChildFileName && kevt.IsCreateProcess() {
+		if (f == fields.PePsChildFileName || f == fields.PsChildPeFilename) && kevt.IsCreateProcess() {
 			exe = kevt.GetParamAsString(kparams.Exe)
 		} else {
 			exe = kevt.PS.Exe
@@ -1166,7 +1223,7 @@ func (pa *peAccessor) Get(f fields.Field, kevt *kevent.Kevent) (kparams.Value, e
 		return p.VersionResources[pe.LegalCopyright], nil
 	case fields.PeDescription:
 		return p.VersionResources[pe.FileDescription], nil
-	case fields.PeFileName, fields.PePsChildFileName:
+	case fields.PeFileName, fields.PePsChildFileName, fields.PsChildPeFilename:
 		return p.VersionResources[pe.OriginalFilename], nil
 	case fields.PeFileVersion:
 		return p.VersionResources[pe.FileVersion], nil

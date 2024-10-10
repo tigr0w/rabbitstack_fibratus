@@ -52,7 +52,8 @@ var schema = `
 								"password": 	{"type": "string"},
 								"from": 		{"type": "string"},
 								"to": 			{"type": "array", "items": {"type": "string", "format": "email"}},
-								"content-type": {"type": "string"}
+								"content-type": {"type": "string"},
+								"use-template": {"type": "boolean"}
 							},
 							"if": {
 								"properties": {"enabled": { "const": true }}
@@ -88,6 +89,15 @@ var schema = `
 								"enabled": 		{"type": "boolean"},
 								"sound": 		{"type": "boolean"},
 								"quiet-mode": 	{"type": "boolean"}
+							},
+							"additionalProperties": false
+
+						},
+		                "eventlog": {
+							"type": "object",
+							"properties": {
+								"enabled": {"type": "boolean"},
+								"verbose": {"type": "boolean"}
 							},
 							"additionalProperties": false
 						}
@@ -474,7 +484,7 @@ var schema = `
 						"additionalProperties": false
 					}]
 				},
-				"alert-via":		{"type": "string", "enum": ["slack", "mail"]},
+				"alert-via":		{"type": "string", "enum": ["slack", "mail", "systray"]},
 				"alert-template":   {
 						"type": 		"object",
 						"properties": {
